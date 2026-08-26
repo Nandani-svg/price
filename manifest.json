@@ -1,0 +1,41 @@
+{
+"manifest_version": 3,
+"name": "Price Watch",
+"version": "1.0.0",
+"description": "Track prices on any e commerce site. Get notified when price drop..No account or API needed",
+
+"permissions": [
+"storage",
+"alarms",
+"notifications",
+"tabs",
+"scripting",
+"contextMenus",
+"activeTab"
+],
+"host_permissions": ["<all_urls"],
+
+"background": {
+"service_worker": "background/service-worker.js"
+},
+
+"action": {
+"default_popup": "popup/popup.html",
+"default_title": "Price Watch",
+"default_icon":{
+"16": "icons/icon16.png",
+"32": "icons/icon32.png",
+"48": "icons/icon48.png",
+"128": "icons/icon128.png"
+}
+},
+
+"options_page": "options/options.html",
+
+"icons": {
+"16": "icons/icon16.png",
+"32": "icons/icon32.png",
+"48": "icons/icon48.png",
+"128": "icons/icon128.png"
+}
+}
