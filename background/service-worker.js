@@ -132,4 +132,3 @@ chrome.alarms.onAlarm.addListener(async alarm => {
 if (alarm.name === ALARM_NAME) await runPriceChecks();
 });
 
-async
