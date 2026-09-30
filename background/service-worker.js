@@ -132,3 +132,191 @@ chrome.alarms.onAlarm.addListener(async alarm => {
 if (alarm.name === ALARM_NAME) await runPriceChecks();
 });
 
+async function runPriceChecks() {
+const { watchlist = [] } = await chrome.storage.local.get('watchlist');
+if (watchlist.length === 0) return;
+
+for (let i = 0; i < watchlist.length; i++) {
+try {
+   await checkSingleItem(watchlist, i);
+} catch (err) {
+console.error(`[PriceWatch] Error checking "${watchlist[i].title}":`, err.message);
+watchlist[i].status = 'needs-reselection';
+watchlist[i].lastChecked = Date.now();
+}
+}
+
+
+
+const { watchlist: fresh = [] } = await chrome.storage.local.get('watchlist');
+const updatedById = Object.fromEntries(watchlist.map(item => [item.id, item]));
+const merged = fresh.map(item => updatedById[item.id] ?? item);
+await chrome.storage.local.set({ watchlist: merged });
+}
+
+async function checkSingleItem(watchlist, index) {
+const item = watchlist[index];
+let tab;
+
+try {
+tab = await chrome.tabs.create({ url: item.url, active: false });
+await waitForTabComplete(tab.id);
+await sleep(TAB_JS_SETTLE_MS);
+
+const results = await chrome.scripting.executeScript({
+   target: { tabId: tab.id },
+   func: scrapePrice,
+   args: [item.selector]
+});
+
+const result = results?.[0]?.result;
+
+if (!result?.found) {
+watchlist[index].status = 'needs-reselection';
+watchlist[index].lastChecked = Date.now();
+return;
+}
+
+const newPrice = parsePrice(result.text);
+
+if (newPrice === null) {
+watchlist[index].status = 'needs-reselection';
+watchlist[index].lastChecked = Date.now();
+return;
+}
+
+
+
+
+const detectedCurrency =  (result.text.match(/[$₹€£¥₩฿₺₴₦₱]/) || [])[0] || result.currency;
+if (detectedCurrency) {
+watchlist[index].currency = detectedCurrency;
+}
+
+const prevPrice = item.currentPrice;
+watchlist[index].currentPrice = newPrice;
+watchlist[index].lastChecked = Date.now();
+
+if (newPrice < item.originalPrice) {
+
+const alreadyNotified = item.status === 'price-dropped';
+watchlist[index].status = 'price-dropped';
+if (!alreadyNotified) {
+await sendPriceDropNotification(item, prevPrice, newPrice);
+}
+} else {
+
+watchlist[index].status = 'ok';
+}
+} finally {
+if (tab?.id) {
+try { await chrome.tabs.remove(tab.id); } catch (_) {}
+}
+}
+}
+
+async function sendPriceDropNotification(item, oldPrice, newPrice) {
+const sym = item.currency || '$';
+const oldStr = fmtPriceNotif(sym, oldPrice);
+chrome.notifications.create(`price-drop-${item.id}-${Date.now()}`, {
+type: 'basic',
+iconUrl: chrome.runtime.getURL('icons/icon128.png'),
+title: 'Price Drop!',
+message: item.title,
+contextMessage:  `${oldStr} → ${fmtPriceNotif(sym, newPrice)}`,
+priority: 2
+});
+}
+
+
+function fmtPriceNotif(sym, value) {
+if (value == null) return '?';
+const decimals = sym === '₹' ? 0 : 2;
+return `${sym}${value.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
+}
+
+function waitForTabComplete(tabId) {
+
+
+return chrome.tabs.get(tabId).then(current => {
+if (current.status === 'complete') return;
+return new Promise((resolve, reject) => {
+const timeoutId = setTimeout(() => {
+chrome.tabs.onUpdated.removeListener(listener);
+reject(new Error(`Tab ${tabId} timed out`));
+}, TAB_LOAD_TIMEOUT_MS);
+
+function listener(id, changeInfo) {
+if (id === tabId && changeInfo.status === 'complete') {
+clearTimeout(timeoutId);
+chrome.tabs.onUpdated.addListener(listener);
+resolve();
+}
+ }
+ chrome.tabs.onUpdated.addListener(listener);
+});
+});
+}
+
+function sleep(ms) {
+return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+
+function scrapePrice(selector) {
+try {
+const el = document.querySelector(selector);
+if (!el) return { found: false, text: null };
+const text = (el.innerText || el.textContent || '').trim();
+if (!text) return { found: false, text: null };
+
+
+const CURRENCY_RE =  /[$₹€£¥₩฿₺₴₦₱]/;
+let currency = (text.match(CURRENCY_RE) || [])[0] || null;
+if (!currency && el.parentElement) {
+const  parentText = el.parentElement.innerText || el.parentElement.textContent || '';
+currency = (parentText.match(CURRENCY_RE) || [])[0] || null;
+}
+
+return { found: true, text, currency };
+} catch {
+return { found: false, text: null };
+}
+}
+
+function parsePrice(text) {
+if (!text) return null;
+let s = text.replace(/[^\d.,]/g, '').trim();
+if (!s) return null;
+
+const lastCommaIdx = s.lastIndexOf(',');
+const lastDotIdx = s.lastIndexOf(',');
+
+if (lastCommaIdx > lastDotIdx) {
+   
+   
+
+const afterLastComma = s.slice(lastCommaIdx + 1);
+if (afterLastComma.length <= 2) {
+
+s = s.replace(/\./g, '').replace(',', '.');
+} else {
+
+s = s.replace(/,/g.'');
+}
+} else {
+
+s = s.replace(/,/g, '');
+}
+
+const match = s.match(/^\d+\.?\d*/);
+if (!match) return null;
+const value = parseFloat(match[0]);
+return isNaN(value) ? null : value;
+}
+
+function  extractCurrencySymbol(text) {
+if (!text) return null;
+const match = text.match(/[$₹€£¥₩฿₺₴₦₱]/);
+return match ? match[0] : null;
+}
