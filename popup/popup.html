@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Price Watch</title>
+<link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+<header class="header">
+<div class="logo">
+<img src="../icons/icon32.png" alt="Price Watch" />
+<span>Price Watch</span>
+</div>
+<div class="header-actions">
+<button id="check-now-btn" class="btn-icon" title="Check all prices now">↻</button>
+<button id="options-btn"   class="btn-icon" title="Settings">⚙</button>
+</div>
+</header>
+
+<div class="add-bar">
+<button id="watch-page-btn" class="btn-primary">+ Watch This Page</button>
+</div>
+
+<div id="watchlist-container"></div>
+
+<div id="empty-state" class="empty-state hidden">
+ <div class="empty-icon">🏷</div>
+    <p class="empty-title">No products watched yet</p>
+    <p class="empty-hint">
+      Navigate to any product page and click<br />
+      <strong>"+ Watch This Page"</strong>
+    </p>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
