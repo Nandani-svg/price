@@ -233,7 +233,7 @@ setTimeout(() => toast.remove(), 3500);
 function cleanup() {
 document.removeEventListener('mouseover', onMouseOver, true);
 document.removeEventListener('mouseout', onMouseOut, true);
-document.removeEventListener('click', onCluck, true);
+document.removeEventListener('click', onClick, true);
 overlay.remove();
 style.remove();
 if (hoveredEl) hoveredEl.classList.remove('pw-hovered', 'pw-selected-flash');

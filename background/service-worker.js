@@ -1,4 +1,4 @@
-'user strict'
+'use strict'
 
 const ALARM_NAME = 'pricewatch-check';
 const DEFAULT_INTERVAL_HOURS = 6;
@@ -9,14 +9,14 @@ chrome.runtime.onInstalled.addListener(async () => {
 chrome.contextMenus.create({
 id: 'add-to-watchlist',
 title: '🏷 Add to Price Watch',
-context: ['page', 'frame']
+contexts: ['page', 'frame']
 });
 
 const stored = await chrome.storage.local.get(['watchlist', 'settings']);
 if (!stored.watchlist) await chrome.storage.local.set({ watchlist: [] });
 if (!stored.settings) {
 await chrome.storage.local.set({
-settings: { checkIntervalHours: DEFAULT_INTERVAL__HOURS }
+settings: { checkIntervalHours: DEFAULT_INTERVAL_HOURS }
 });
 }
 
@@ -64,8 +64,8 @@ case 'SELECTOR_CANCELLED':
  break;
 
 case 'TRIGGER_CHECK':
- runPriceCheck()
- .then(() => sendResponse({ ok: true })
+ runPriceChecks()
+ .then(() => sendResponse({ ok: true }))
  .catch(err => sendResponse({ ok: false, error: err.message }));
 return true;
 
@@ -104,7 +104,7 @@ status: price !== null ? 'ok' : 'needs-reselection'
 };
 
 const { watchlist = [] } = await chrome.storage.local.get('watchlist');
-const existingIdx = watchlist.findIndex(i => i.url == tab.url);
+const existingIdx = watchlist.findIndex(i => i.url === tab.url);
 
 if (existingIdx >= 0) {
 watchlist[existingIdx] = {
@@ -249,7 +249,7 @@ reject(new Error(`Tab ${tabId} timed out`));
 function listener(id, changeInfo) {
 if (id === tabId && changeInfo.status === 'complete') {
 clearTimeout(timeoutId);
-chrome.tabs.onUpdated.addListener(listener);
+chrome.tabs.onUpdated.removeListener(listener);
 resolve();
 }
  }
@@ -290,7 +290,7 @@ let s = text.replace(/[^\d.,]/g, '').trim();
 if (!s) return null;
 
 const lastCommaIdx = s.lastIndexOf(',');
-const lastDotIdx = s.lastIndexOf(',');
+const lastDotIdx = s.lastIndexOf('.');
 
 if (lastCommaIdx > lastDotIdx) {
    
@@ -302,7 +302,7 @@ if (afterLastComma.length <= 2) {
 s = s.replace(/\./g, '').replace(',', '.');
 } else {
 
-s = s.replace(/,/g.'');
+s = s.replace(/,/g, '');
 }
 } else {
 
