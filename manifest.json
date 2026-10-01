@@ -2,7 +2,7 @@
 "manifest_version": 3,
 "name": "Price Watch",
 "version": "1.0.0",
-"description": "Track prices on any e commerce site. Get notified when price drop..No account or API needed",
+"description": "Track prices on any e-commerce site and get notified when prices drop. 100% private, no account or API needed.",
 
 "permissions": [
 "storage",
@@ -13,7 +13,7 @@
 "contextMenus",
 "activeTab"
 ],
-"host_permissions": ["<all_urls"],
+"host_permissions": ["<all_urls>"],
 
 "background": {
 "service_worker": "background/service-worker.js"
